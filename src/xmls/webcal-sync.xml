@@ -1,0 +1,16 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<profile name="webcal-sync" type="sync" >
+    <key name="destinationtype" value="online"/>
+    <key name="enabled" value="false"/>
+    <key name="hidden" value="true"/>
+    <key name="use_accounts" value="false"/>
+
+    <profile type="client" name="webcal">
+        <key value="" name="remoteCalendar"/>
+        <key value="" name="label"/>
+    </profile>
+
+    <schedule enabled="false" interval="86400" syncconfiguredtime="" days="" time="">
+        <rush end="" enabled="false" interval="15" begin="" days=""/>
+    </schedule>
+</profile>
