@@ -57,6 +57,7 @@ public Q_SLOTS:
     virtual void connectivityStateChanged(Sync::ConnectivityType aType, bool aState);
 
 private Q_SLOTS:
+    void dataReceived();
     void requestFinished();
 
 private:

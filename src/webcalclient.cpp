@@ -57,6 +57,8 @@ WebCalClient::~WebCalClient()
 
 bool WebCalClient::init()
 {
+    emit syncProgressDetail(iProfile.name(), Sync::SYNC_PROGRESS_INITIALISING);
+
     mClient = iProfile.subProfile("webcal", Buteo::Profile::TYPE_CLIENT);
     if (!mClient) {
         LOG_WARNING("Cannot find client profile.");
@@ -120,8 +122,10 @@ bool WebCalClient::startSync()
     }
     LOG_DEBUG("Requesting" << request.url() << mNotebookEtag);
 
-    QNetworkReply *reply = QNetworkAccessManager().get(request);
-    connect(reply, SIGNAL(finished()), this, SLOT(requestFinished()));
+    QNetworkAccessManager *accessManager = new QNetworkAccessManager(this);
+    QNetworkReply *reply = accessManager->get(request);
+    connect(reply, &QNetworkReply::finished, this, &WebCalClient::requestFinished);
+    connect(reply, &QIODevice::readyRead, this, &WebCalClient::dataReceived);
     
     return true;
 }
@@ -161,6 +165,11 @@ void WebCalClient::connectivityStateChanged(Sync::ConnectivityType aType, bool a
         // we lost connectivity during sync.
         abortSync(Sync::SYNC_CONNECTION_ERROR);
     }
+}
+
+void WebCalClient::dataReceived()
+{
+    emit syncProgressDetail(iProfile.name(), Sync::SYNC_PROGRESS_RECEIVING_ITEMS);
 }
 
 bool WebCalClient::storeCalendar(const QByteArray &icsData, QString &message)
@@ -221,6 +230,7 @@ void WebCalClient::requestFinished()
     QByteArray data = reply->readAll();
     reply->deleteLater();
 
+    emit syncProgressDetail(iProfile.name(), Sync::SYNC_PROGRESS_FINALISING);
     if (!data.isEmpty()) {
         QString message;
         if (!storeCalendar(data, message)) {
