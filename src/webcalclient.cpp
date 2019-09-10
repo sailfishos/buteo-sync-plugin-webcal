@@ -121,6 +121,9 @@ bool WebCalClient::startSync()
     if (!mNotebookEtag.isEmpty()) {
         request.setRawHeader("If-None-Match", mNotebookEtag);
     }
+    if (mClient->boolKey("allowRedirect")) {
+        request.setAttribute(QNetworkRequest::FollowRedirectsAttribute, true);
+    }
     LOG_DEBUG("Requesting" << request.url() << mNotebookEtag);
 
     QNetworkReply *reply = mNAManager->get(request);

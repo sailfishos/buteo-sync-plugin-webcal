@@ -3,4 +3,5 @@
 <profile name="webcal" type="client" >
     <field name="remoteCalendar" />
     <field name="label" />
+    <field name="allowRedirect" />
 </profile>
