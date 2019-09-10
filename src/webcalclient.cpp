@@ -190,6 +190,7 @@ bool WebCalClient::storeCalendar(const QByteArray &icsData, QString &message)
     mCalendar->addNotebook(mNotebookUid, true);
     mCalendar->setDefaultNotebook(mNotebookUid);
     KCalCore::ICalFormat iCalFormat;
+    LOG_DEBUG(icsData);
     if (!iCalFormat.fromString(mCalendar, icsData)) {
         message = QStringLiteral("Cannot parse incoming ICS data.");
         return false;
@@ -222,24 +223,13 @@ void WebCalClient::requestFinished()
             etag = header.second;
         }
     }
+    LOG_DEBUG("Got etag" << etag);
     QByteArray data = reply->readAll();
     reply->deleteLater();
 
     if (!data.isEmpty()) {
-        LOG_DEBUG("Got data with etag" << etag);
         QString message;
-        if (storeCalendar(data, message)) {
-            mKCal::Notebook::Ptr notebook = mStorage->notebook(mNotebookUid);
-            if (notebook) {
-                // Ensure that settings for the notebook are consistent.
-                notebook->setName(mClient->key("Label"));
-                notebook->setAccount(etag);
-                notebook->setIsReadOnly(true);
-                notebook->setIsMaster(false);
-                notebook->setSyncDate(KDateTime::currentUtcDateTime());
-                mStorage->updateNotebook(notebook);
-            }
-        } else {
+        if (!storeCalendar(data, message)) {
             mResults = Buteo::SyncResults(QDateTime::currentDateTime().toUTC(),
                                           Buteo::SyncResults::SYNC_RESULT_FAILED,
                                           Buteo::SyncResults::DATABASE_FAILURE);
@@ -247,6 +237,16 @@ void WebCalClient::requestFinished()
                        Buteo::SyncResults::DATABASE_FAILURE);
             return;
         }
+    }
+    mKCal::Notebook::Ptr notebook = mStorage->notebook(mNotebookUid);
+    if (notebook) {
+        // Ensure that settings for the notebook are consistent.
+        notebook->setName(mClient->key("label"));
+        notebook->setAccount(etag);
+        notebook->setIsReadOnly(true);
+        notebook->setIsMaster(false);
+        notebook->setSyncDate(KDateTime::currentUtcDateTime());
+        mStorage->updateNotebook(notebook);
     }
     mResults = Buteo::SyncResults(QDateTime::currentDateTime().toUTC(),
                                   Buteo::SyncResults::SYNC_RESULT_SUCCESS,
