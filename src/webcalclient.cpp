@@ -81,7 +81,6 @@ bool WebCalClient::init()
         if (notebook->pluginName() == getPluginName() &&
             notebook->syncProfile() == getProfileName()) {
             mNotebook = notebook;
-            mNotebook->setName(mClient->key("Label"));
             if (!mStorage->loadNotebookIncidences(mNotebook->uid())) {
                 LOG_WARNING("Cannot load existing incidences.");
                 return false;
@@ -229,8 +228,11 @@ void WebCalClient::requestFinished()
         if (storeCalendar(data, message)) {
             mKCal::Notebook::Ptr notebook = mStorage->notebook(mNotebook->uid());
             if (notebook) {
-                notebook->setName(mNotebook->name());
+                // Ensure that settings for the notebook are consistent.
+                notebook->setName(mClient->key("Label"));
                 notebook->setAccount(etag);
+                notebook->setIsReadOnly(true);
+                notebook->setIsMaster(false);
                 notebook->setSyncDate(KDateTime::currentUtcDateTime());
                 mStorage->updateNotebook(notebook);
             }
