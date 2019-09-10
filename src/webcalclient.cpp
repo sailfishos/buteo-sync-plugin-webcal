@@ -148,6 +148,10 @@ Buteo::SyncResults WebCalClient::getSyncResults() const
 
 bool WebCalClient::cleanUp()
 {
+    if (!mNotebook) {
+        init();
+    }
+    LOG_DEBUG("Deleting notebook" << mNotebook->uid());
     mKCal::Notebook::Ptr notebook = mStorage->notebook(mNotebook->uid());
     if (notebook) {
         return mStorage->deleteNotebook(notebook);
