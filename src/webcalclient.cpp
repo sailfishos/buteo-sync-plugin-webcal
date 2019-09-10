@@ -24,12 +24,9 @@
 #include <QNetworkAccessManager>
 #include <QNetworkReply>
 #include <QDateTime>
-#include <QtGlobal>
 
 #include <PluginCbInterface.h>
 #include <LogMacros.h>
-#include <ProfileEngineDefs.h>
-#include <ProfileManager.h>
 
 #include <icalformat.h>
 
@@ -49,7 +46,6 @@ WebCalClient::WebCalClient(const QString& aPluginName,
                            const Buteo::SyncProfile& aProfile,
                            Buteo::PluginCbInterface *aCbInterface)
     : ClientPlugin(aPluginName, aProfile, aCbInterface)
-    , mNAManager(new QNetworkAccessManager)
     , mCalendar(0)
     , mStorage(0)
 {
@@ -57,7 +53,6 @@ WebCalClient::WebCalClient(const QString& aPluginName,
 
 WebCalClient::~WebCalClient()
 {
-    delete(mNAManager);
 }
 
 bool WebCalClient::init()
@@ -94,7 +89,7 @@ bool WebCalClient::init()
         notebook->setPluginName(getPluginName());
         notebook->setSyncProfile(getProfileName());
         if (!mStorage->addNotebook(notebook)) {
-            LOG_WARNING("Cannot create a new notebook." << notebook->name());
+            LOG_WARNING("Cannot create a new notebook" << mClient->key("label"));
             return false;
         }
         mNotebookUid = notebook->uid();
@@ -118,15 +113,14 @@ bool WebCalClient::uninit()
 bool WebCalClient::startSync()
 {
     QNetworkRequest request(mClient->key("remoteCalendar"));
+    request.setAttribute(QNetworkRequest::FollowRedirectsAttribute,
+                         mClient->boolKey("allowRedirect"));
     if (!mNotebookEtag.isEmpty()) {
         request.setRawHeader("If-None-Match", mNotebookEtag);
     }
-    if (mClient->boolKey("allowRedirect")) {
-        request.setAttribute(QNetworkRequest::FollowRedirectsAttribute, true);
-    }
     LOG_DEBUG("Requesting" << request.url() << mNotebookEtag);
 
-    QNetworkReply *reply = mNAManager->get(request);
+    QNetworkReply *reply = QNetworkAccessManager().get(request);
     connect(reply, SIGNAL(finished()), this, SLOT(requestFinished()));
     
     return true;

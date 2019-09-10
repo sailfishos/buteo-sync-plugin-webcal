@@ -28,9 +28,6 @@
 
 #include <extendedstorage.h>
 
-class QNetworkAccessManager;
-
-#include <QtCore/qglobal.h>
 #include <QObject>
 
 #if defined(BUTEOWEBCALPLUGIN_LIBRARY)
@@ -65,7 +62,6 @@ private Q_SLOTS:
 private:
     bool storeCalendar(const QByteArray &icsData, QString &message);
 
-    QNetworkAccessManager       *mNAManager;
     const Buteo::Profile        *mClient;
     QString                      mNotebookUid;
     QByteArray                   mNotebookEtag;
