@@ -50,7 +50,6 @@ WebCalClient::WebCalClient(const QString& aPluginName,
                            Buteo::PluginCbInterface *aCbInterface)
     : ClientPlugin(aPluginName, aProfile, aCbInterface)
     , mNAManager(new QNetworkAccessManager)
-    , mNotebook(0)
     , mCalendar(0)
     , mStorage(0)
 {
@@ -80,25 +79,27 @@ bool WebCalClient::init()
     Q_FOREACH (mKCal::Notebook::Ptr notebook, mStorage->notebooks()) {
         if (notebook->pluginName() == getPluginName() &&
             notebook->syncProfile() == getProfileName()) {
-            mNotebook = notebook;
-            if (!mStorage->loadNotebookIncidences(mNotebook->uid())) {
+            mNotebookUid = notebook->uid();
+            mNotebookEtag = notebook->account().toUtf8(); // Abuse the account to store the etag.
+            if (!mStorage->loadNotebookIncidences(mNotebookUid)) {
                 LOG_WARNING("Cannot load existing incidences.");
                 return false;
             }
             break;
         }
     }
-    if (!mNotebook) {
+    if (mNotebookUid.isEmpty()) {
         // or create a new one
-        mNotebook = mKCal::Notebook::Ptr(new mKCal::Notebook(mClient->key("label"), QString()));
-        mNotebook->setPluginName(getPluginName());
-        mNotebook->setSyncProfile(getProfileName());
-        if (!mStorage->addNotebook(mNotebook)) {
-            LOG_WARNING("Cannot create a new notebook." << mNotebook->name());
+        mKCal::Notebook::Ptr notebook(new mKCal::Notebook(mClient->key("label"), QString()));
+        notebook->setPluginName(getPluginName());
+        notebook->setSyncProfile(getProfileName());
+        if (!mStorage->addNotebook(notebook)) {
+            LOG_WARNING("Cannot create a new notebook." << notebook->name());
             return false;
         }
+        mNotebookUid = notebook->uid();
     }
-    LOG_DEBUG("Using notebook" << mNotebook->uid());
+    LOG_DEBUG("Using notebook" << mNotebookUid);
 
     return true;
 }
@@ -117,11 +118,10 @@ bool WebCalClient::uninit()
 bool WebCalClient::startSync()
 {
     QNetworkRequest request(mClient->key("remoteCalendar"));
-    QString etag = mNotebook->account(); // Abuse the account to store the etag.
-    if (!etag.isEmpty()) {
-        request.setRawHeader("If-None-Match", etag.toUtf8());
+    if (!mNotebookEtag.isEmpty()) {
+        request.setRawHeader("If-None-Match", mNotebookEtag);
     }
-    LOG_DEBUG("Requesting" << request.url() << etag);
+    LOG_DEBUG("Requesting" << request.url() << mNotebookEtag);
 
     QNetworkReply *reply = mNAManager->get(request);
     connect(reply, SIGNAL(finished()), this, SLOT(requestFinished()));
@@ -147,11 +147,11 @@ Buteo::SyncResults WebCalClient::getSyncResults() const
 
 bool WebCalClient::cleanUp()
 {
-    if (!mNotebook) {
+    if (mNotebookUid.isEmpty()) {
         init();
     }
-    LOG_DEBUG("Deleting notebook" << mNotebook->uid());
-    mKCal::Notebook::Ptr notebook = mStorage->notebook(mNotebook->uid());
+    LOG_DEBUG("Deleting notebook" << mNotebookUid);
+    mKCal::Notebook::Ptr notebook = mStorage->notebook(mNotebookUid);
     if (notebook) {
         return mStorage->deleteNotebook(notebook);
     }
@@ -170,7 +170,7 @@ bool WebCalClient::storeCalendar(const QByteArray &icsData, QString &message)
 {
     // Start by deleting all previous data.
     KCalCore::Incidence::List localIncidences;
-    if (!mStorage->allIncidences(&localIncidences, mNotebook->uid())) {
+    if (!mStorage->allIncidences(&localIncidences, mNotebookUid)) {
         message = QStringLiteral("Cannot list existing incidences.");
         return false;
     }
@@ -184,8 +184,8 @@ bool WebCalClient::storeCalendar(const QByteArray &icsData, QString &message)
     }
 
     // Recreate all incidences from incoming ICS data.
-    mCalendar->addNotebook(mNotebook->uid(), true);
-    mCalendar->setDefaultNotebook(mNotebook->uid());
+    mCalendar->addNotebook(mNotebookUid, true);
+    mCalendar->setDefaultNotebook(mNotebookUid);
     KCalCore::ICalFormat iCalFormat;
     if (!iCalFormat.fromString(mCalendar, icsData)) {
         message = QStringLiteral("Cannot parse incoming ICS data.");
@@ -226,7 +226,7 @@ void WebCalClient::requestFinished()
         LOG_DEBUG("Got data with etag" << etag);
         QString message;
         if (storeCalendar(data, message)) {
-            mKCal::Notebook::Ptr notebook = mStorage->notebook(mNotebook->uid());
+            mKCal::Notebook::Ptr notebook = mStorage->notebook(mNotebookUid);
             if (notebook) {
                 // Ensure that settings for the notebook are consistent.
                 notebook->setName(mClient->key("Label"));

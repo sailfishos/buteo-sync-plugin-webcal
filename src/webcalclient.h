@@ -67,7 +67,8 @@ private:
 
     QNetworkAccessManager       *mNAManager;
     const Buteo::Profile        *mClient;
-    mKCal::Notebook::Ptr         mNotebook;
+    QString                      mNotebookUid;
+    QByteArray                   mNotebookEtag;
     mKCal::ExtendedCalendar::Ptr mCalendar;
     mKCal::ExtendedStorage::Ptr  mStorage;
 
