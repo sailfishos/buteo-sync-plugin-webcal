@@ -1,6 +1,6 @@
 Name:       buteo-sync-plugin-webcal
 Summary:    Syncs online calendar resource in ICS format
-Version:    0.0.4
+Version:    0.0.5
 Release:    1
 Group:      System/Libraries
 License:    LGPLv2.1

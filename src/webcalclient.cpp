@@ -174,6 +174,11 @@ void WebCalClient::dataReceived()
 
 bool WebCalClient::storeCalendar(const QByteArray &icsData, QString &message)
 {
+    // Make Notebook writable for the time of the modifications.
+    mKCal::Notebook::Ptr notebook = mStorage->notebook(mNotebookUid);
+    if (notebook) {
+        notebook->setIsReadOnly(false);
+    }
     // Start by deleting all previous data.
     KCalCore::Incidence::List localIncidences;
     if (!mStorage->allIncidences(&localIncidences, mNotebookUid)) {
@@ -183,10 +188,19 @@ bool WebCalClient::storeCalendar(const QByteArray &icsData, QString &message)
     LOG_DEBUG("Deleting" << localIncidences.count() << "previous incidences.");
     for (KCalCore::Incidence::List::ConstIterator it = localIncidences.constBegin();
          it != localIncidences.constEnd(); ++it) {
-        if (!mCalendar->deleteIncidence(*it)) {
+        KCalCore::Incidence::Ptr incidence =
+            mCalendar->incidence((*it)->uid(), (*it)->recurrenceId());
+        LOG_DEBUG("-" << (*it)->uid() << (*it)->recurrenceId().dateTime());
+        if (!incidence || !mCalendar->deleteIncidence(incidence)) {
             message = QStringLiteral("Cannot delete incidence.");
             return false;
         }
+    }
+    // Deletion happens after insertion in mkcal, so ensure
+    // that incidences with a UID in icsData are deleted before.
+    if (!localIncidences.isEmpty() && !mStorage->save()) {
+        message = QStringLiteral("Cannot delete previous data.");
+        return false;
     }
 
     // Recreate all incidences from incoming ICS data.
@@ -198,9 +212,9 @@ bool WebCalClient::storeCalendar(const QByteArray &icsData, QString &message)
         message = QStringLiteral("Cannot parse incoming ICS data.");
         return false;
     }
-    LOG_DEBUG("Adding" << mCalendar->eventCount() << "new incidences.");
+    LOG_DEBUG("Adding" << mCalendar->incidences().count() << "new incidences.");
     
-    if (!mStorage->save()) {
+    if (mCalendar->incidences().count() && !mStorage->save()) {
         message = QStringLiteral("Cannot store data.");
         return false;
     }
