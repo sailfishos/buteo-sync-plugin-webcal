@@ -61,7 +61,8 @@ private Q_SLOTS:
     void requestFinished();
 
 private:
-    bool storeCalendar(const QByteArray &icsData, QString &message);
+    bool storeCalendar(const QByteArray &icsData, QString &message,
+                       unsigned int *added, unsigned int *deleted);
 
     const Buteo::Profile        *mClient;
     QString                      mNotebookUid;
