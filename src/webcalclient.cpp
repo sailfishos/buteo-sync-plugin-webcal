@@ -249,6 +249,7 @@ void WebCalClient::requestFinished()
 
     emit syncProgressDetail(iProfile.name(), Sync::SYNC_PROGRESS_FINALISING);
     unsigned int added = 0, deleted = 0;
+    mKCal::Notebook::Ptr notebook = mStorage->notebook(mNotebookUid);
     if (etag.isEmpty() || etag != mNotebookEtag) {
         QString message;
         if (!storeCalendar(data, message, &added, &deleted)) {
@@ -259,17 +260,19 @@ void WebCalClient::requestFinished()
                        Buteo::SyncResults::DATABASE_FAILURE);
             return;
         }
-        mKCal::Notebook::Ptr notebook = mStorage->notebook(mNotebookUid);
         if (notebook) {
-            // Ensure that settings for the notebook are consistent.
-            notebook->setName(mClient->key("label"));
+            // Record the etag so we only update in future if necesary.
             notebook->setAccount(etag);
-            notebook->setIsReadOnly(true);
-            notebook->setIsMaster(false);
-            notebook->setSyncDate(KDateTime::currentUtcDateTime());
-            if (!mStorage->updateNotebook(notebook)) {
-                LOG_WARNING("Cannot update notebook:" << mNotebookUid);
-            }
+        }
+    }
+    if (notebook) {
+        // Ensure that settings for the notebook are consistent.
+        notebook->setName(mClient->key("label"));
+        notebook->setIsReadOnly(true);
+        notebook->setIsMaster(false);
+        notebook->setSyncDate(KDateTime::currentUtcDateTime());
+        if (!mStorage->updateNotebook(notebook)) {
+            LOG_WARNING("Cannot update notebook:" << mNotebookUid);
         }
     }
     mResults = Buteo::SyncResults(QDateTime::currentDateTime().toUTC(),
