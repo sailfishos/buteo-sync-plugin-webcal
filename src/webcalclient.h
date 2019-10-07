@@ -61,8 +61,8 @@ private Q_SLOTS:
     void requestFinished();
 
 private:
-    bool storeCalendar(const QByteArray &icsData, QString &message,
-                       unsigned int *added, unsigned int *deleted);
+    bool processData(const QByteArray &icsData, const QByteArray &etag,
+                     QString &message, unsigned int *added, unsigned int *deleted);
 
     const Buteo::Profile        *mClient;
     QString                      mNotebookUid;
@@ -70,7 +70,9 @@ private:
     mKCal::ExtendedCalendar::Ptr mCalendar;
     mKCal::ExtendedStorage::Ptr  mStorage;
 
-    Buteo::SyncResults          mResults;
+    Buteo::SyncResults           mResults;
+
+    friend class tst_WebCalClient;
 };
 
 /*! \brief Creates WebCal client plugin
