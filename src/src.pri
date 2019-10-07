@@ -1,7 +1,7 @@
 QT -= gui
 QT += network dbus
 
-CONFIG += link_pkgconfig console
+CONFIG += link_pkgconfig c++11
 
 PKGCONFIG += buteosyncfw5 libkcalcoren-qt5 libmkcal-qt5
 

@@ -46,13 +46,15 @@ WebCalClient::WebCalClient(const QString& aPluginName,
                            const Buteo::SyncProfile& aProfile,
                            Buteo::PluginCbInterface *aCbInterface)
     : ClientPlugin(aPluginName, aProfile, aCbInterface)
-    , mCalendar(0)
-    , mStorage(0)
+    , mCalendar(nullptr)
+    , mStorage(nullptr)
+    , mReply(nullptr)
 {
 }
 
 WebCalClient::~WebCalClient()
 {
+    delete(mReply);
 }
 
 bool WebCalClient::init()
@@ -73,7 +75,7 @@ bool WebCalClient::init()
     }
 
     // Look for an already existing notebook in storage for this account.
-    Q_FOREACH (mKCal::Notebook::Ptr notebook, mStorage->notebooks()) {
+    for (mKCal::Notebook::Ptr notebook : mStorage->notebooks()) {
         if (notebook->pluginName() == getPluginName() &&
             notebook->syncProfile() == getProfileName()) {
             mNotebookUid = notebook->uid();
@@ -123,9 +125,21 @@ bool WebCalClient::startSync()
     LOG_DEBUG("Requesting" << request.url() << mNotebookEtag);
 
     QNetworkAccessManager *accessManager = new QNetworkAccessManager(this);
-    QNetworkReply *reply = accessManager->get(request);
-    connect(reply, &QNetworkReply::finished, this, &WebCalClient::requestFinished);
-    connect(reply, &QIODevice::readyRead, this, &WebCalClient::dataReceived);
+    mReply = accessManager->get(request);
+    connect(mReply, &QNetworkReply::finished, [this] {
+            emit syncProgressDetail(iProfile.name(), Sync::SYNC_PROGRESS_FINALISING);
+            mReply->deleteLater();
+            if (mReply->error() != QNetworkReply::NoError
+                && mReply->error() != QNetworkReply::OperationCanceledError) {
+                LOG_WARNING(mReply->readAll());
+                failed(Buteo::SyncResults::CONNECTION_ERROR,
+                       QStringLiteral("Network issue: %1.").arg(mReply->error()));
+            } else if (mReply->error() == QNetworkReply::NoError) {
+                processData(mReply->readAll(), mReply->rawHeader("etag"));
+            }
+            mReply = nullptr;
+        });
+    connect(mReply, &QIODevice::readyRead, this, &WebCalClient::dataReceived);
     
     return true;
 }
@@ -134,11 +148,31 @@ void WebCalClient::abortSync(Sync::SyncStatus aStatus)
 {
     Q_UNUSED(aStatus);
 
+    failed(Buteo::SyncResults::ABORTED, QStringLiteral("Synchronization aborted."));
+    if (mReply) {
+        mReply->abort();
+    }
+}
+
+void WebCalClient::succeed(unsigned int added, unsigned int deleted)
+{
     mResults = Buteo::SyncResults(QDateTime::currentDateTime().toUTC(),
-                                  Buteo::SyncResults::SYNC_RESULT_FAILED,
-                                  Buteo::SyncResults::ABORTED);
-    emit error(iProfile.name(), QStringLiteral("Synchronization aborted"),
-               Buteo::SyncResults::ABORTED);
+                                  Buteo::SyncResults::SYNC_RESULT_SUCCESS,
+                                  Buteo::SyncResults::NO_ERROR);
+    if (added || deleted) {
+        mResults.addTargetResults
+            (Buteo::TargetResults(mNotebookUid,
+                                  Buteo::ItemCounts(added, deleted, 0),
+                                  Buteo::ItemCounts()));
+    }
+    emit success(iProfile.name(), QStringLiteral("Remote calendar updated successfully."));
+}
+
+void WebCalClient::failed(Buteo::SyncResults::MinorCode code, const QString &message)
+{
+    mResults = Buteo::SyncResults(QDateTime::currentDateTime().toUTC(),
+                                  Buteo::SyncResults::SYNC_RESULT_FAILED, code);
+    emit error(iProfile.name(), message, code);
 }
 
 Buteo::SyncResults WebCalClient::getSyncResults() const
@@ -169,18 +203,17 @@ void WebCalClient::dataReceived()
     emit syncProgressDetail(iProfile.name(), Sync::SYNC_PROGRESS_RECEIVING_ITEMS);
 }
 
-bool WebCalClient::processData(const QByteArray &icsData, const QByteArray &etag,
-                               QString &message, unsigned int *added, unsigned int *deleted)
+void WebCalClient::processData(const QByteArray &icsData, const QByteArray &etag)
 {
-    *added = 0;
-    *deleted = 0;
-
     mKCal::Notebook::Ptr notebook = mStorage->notebook(mNotebookUid);
     if (!notebook) {
-        message = QStringLiteral("Cannot find notebook.");
-        return false;
+        failed(Buteo::SyncResults::DATABASE_FAILURE,
+               QStringLiteral("Cannot find notebook."));
+        return;
     }
 
+    unsigned int added = 0, deleted = 0;
+    LOG_DEBUG("Got etag" << etag);
     if (etag.isEmpty() || etag != mNotebookEtag) {
         // Make Notebook writable for the time of the modifications.
         notebook->setIsReadOnly(false);
@@ -188,8 +221,9 @@ bool WebCalClient::processData(const QByteArray &icsData, const QByteArray &etag
         // Start by deleting all previous data.
         KCalCore::Incidence::List localIncidences;
         if (!mStorage->allIncidences(&localIncidences, mNotebookUid)) {
-            message = QStringLiteral("Cannot list existing incidences.");
-            return false;
+            failed(Buteo::SyncResults::DATABASE_FAILURE,
+                   QStringLiteral("Cannot list existing incidences."));
+            return;
         }
         LOG_DEBUG("Deleting" << localIncidences.count() << "previous incidences.");
         for (KCalCore::Incidence::List::ConstIterator it = localIncidences.constBegin();
@@ -198,15 +232,17 @@ bool WebCalClient::processData(const QByteArray &icsData, const QByteArray &etag
                 mCalendar->incidence((*it)->uid(), (*it)->recurrenceId());
             LOG_DEBUG("-" << (*it)->uid() << (*it)->recurrenceId().dateTime());
             if (!incidence || !mCalendar->deleteIncidence(incidence)) {
-                message = QStringLiteral("Cannot delete incidence.");
-                return false;
+                failed(Buteo::SyncResults::DATABASE_FAILURE,
+                       QStringLiteral("Cannot delete incidence."));
+                return;
             }
         }
         // Deletion happens after insertion in mkcal, so ensure
         // that incidences with a UID in icsData are deleted before.
         if (!localIncidences.isEmpty() && !mStorage->save()) {
-            message = QStringLiteral("Cannot delete previous data.");
-            return false;
+            failed(Buteo::SyncResults::DATABASE_FAILURE,
+                   QStringLiteral("Cannot delete previous data."));
+            return;
         }
 
         // Recreate all incidences from incoming ICS data.
@@ -215,21 +251,23 @@ bool WebCalClient::processData(const QByteArray &icsData, const QByteArray &etag
         KCalCore::ICalFormat iCalFormat;
         LOG_DEBUG(icsData);
         if (!icsData.isEmpty() && !iCalFormat.fromRawString(mCalendar, icsData)) {
-            message = QStringLiteral("Cannot parse incoming ICS data.");
-            return false;
+            failed(Buteo::SyncResults::DATABASE_FAILURE,
+                   QStringLiteral("Cannot parse incoming ICS data."));
+            return;
         }
         LOG_DEBUG("Adding" << mCalendar->incidences().count() << "new incidences.");
-        LOG_DEBUG("From calendar" << mCalendar->nonKDECustomProperty("X-WR-CALNAME"));
-        LOG_DEBUG("  " << mCalendar->nonKDECustomProperty("X-WR-CALDESC"));
+        LOG_DEBUG("From calendar" << mCalendar->nonKDECustomProperty("X-WR-CALNAME")
+                  << mCalendar->nonKDECustomProperty("X-WR-CALDESC"));
         if (mCalendar->incidences().count() && !mStorage->save()) {
-            message = QStringLiteral("Cannot store data.");
-            return false;
+            failed(Buteo::SyncResults::DATABASE_FAILURE,
+                   QStringLiteral("Cannot store data."));
+            return;
         }
 
-        *added = mCalendar->incidences().count();
-        *deleted = localIncidences.count();
+        added = mCalendar->incidences().count();
+        deleted = localIncidences.count();
 
-        // Record the etag so we only update in future if necesary.
+        // Record the etag so we only update in future if necessary.
         notebook->setAccount(etag);
         // Store calendar name, if auto-detect has been requested.
         if (mClient->key("label").isEmpty()) {
@@ -248,54 +286,10 @@ bool WebCalClient::processData(const QByteArray &icsData, const QByteArray &etag
     notebook->setIsMaster(false);
     notebook->setSyncDate(KDateTime::currentUtcDateTime());
     if (!mStorage->updateNotebook(notebook)) {
-        message = QStringLiteral("Cannot update notebook.");
-        return false;
-    }
-
-    return true;
-}
-
-void WebCalClient::requestFinished()
-{
-    emit syncProgressDetail(iProfile.name(), Sync::SYNC_PROGRESS_FINALISING);
-
-    QNetworkReply *reply = qobject_cast<QNetworkReply*>(sender());
-    if (!reply) {
-        mResults = Buteo::SyncResults(QDateTime::currentDateTime().toUTC(),
-                                      Buteo::SyncResults::SYNC_RESULT_FAILED,
-                                      Buteo::SyncResults::INTERNAL_ERROR);
-        emit error(iProfile.name(), QStringLiteral("No reply object"),
-                   Buteo::SyncResults::INTERNAL_ERROR);
+        failed(Buteo::SyncResults::DATABASE_FAILURE,
+               QStringLiteral("Cannot update notebook."));
         return;
     }
-    reply->deleteLater();
 
-    QByteArray etag;
-    Q_FOREACH (const QNetworkReply::RawHeaderPair &header, reply->rawHeaderPairs()) {
-        if (header.first.toLower() == QStringLiteral("etag")) {
-            etag = header.second;
-        }
-    }
-    LOG_DEBUG("Got etag" << etag);
-
-    QString message;
-    unsigned int added = 0, deleted = 0;
-    if (processData(reply->readAll(), etag, message, &added, &deleted)) {
-        mResults = Buteo::SyncResults(QDateTime::currentDateTime().toUTC(),
-                                      Buteo::SyncResults::SYNC_RESULT_SUCCESS,
-                                      Buteo::SyncResults::NO_ERROR);
-        if (added || deleted) {
-            mResults.addTargetResults
-                (Buteo::TargetResults(mNotebookUid,
-                                      Buteo::ItemCounts(added, deleted, 0),
-                                      Buteo::ItemCounts()));
-        }
-        emit success(iProfile.name(), QStringLiteral("Remote calendar updated successfully."));
-    } else {
-        mResults = Buteo::SyncResults(QDateTime::currentDateTime().toUTC(),
-                                      Buteo::SyncResults::SYNC_RESULT_FAILED,
-                                      Buteo::SyncResults::DATABASE_FAILURE);
-        emit error(iProfile.name(), message,
-                   Buteo::SyncResults::DATABASE_FAILURE);
-    }
+    succeed(added, deleted);
 }

@@ -36,6 +36,8 @@
 #  define SHARED_EXPORT Q_DECL_IMPORT
 #endif
 
+class QNetworkReply;
+
 class SHARED_EXPORT WebCalClient : public Buteo::ClientPlugin
 {
     Q_OBJECT
@@ -58,11 +60,11 @@ public Q_SLOTS:
 
 private Q_SLOTS:
     void dataReceived();
-    void requestFinished();
 
 private:
-    bool processData(const QByteArray &icsData, const QByteArray &etag,
-                     QString &message, unsigned int *added, unsigned int *deleted);
+    void succeed(unsigned int added, unsigned int deleted);
+    void failed(Buteo::SyncResults::MinorCode code, const QString &message);
+    void processData(const QByteArray &icsData, const QByteArray &etag);
 
     const Buteo::Profile        *mClient;
     QString                      mNotebookUid;
@@ -70,6 +72,7 @@ private:
     mKCal::ExtendedCalendar::Ptr mCalendar;
     mKCal::ExtendedStorage::Ptr  mStorage;
 
+    QNetworkReply               *mReply;
     Buteo::SyncResults           mResults;
 
     friend class tst_WebCalClient;
