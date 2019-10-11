@@ -80,10 +80,6 @@ bool WebCalClient::init()
             notebook->syncProfile() == getProfileName()) {
             mNotebookUid = notebook->uid();
             mNotebookEtag = notebook->account().toUtf8(); // Abuse the account to store the etag.
-            if (!mStorage->loadNotebookIncidences(mNotebookUid)) {
-                LOG_WARNING("Cannot load existing incidences.");
-                return false;
-            }
             break;
         }
     }
@@ -219,27 +215,17 @@ void WebCalClient::processData(const QByteArray &icsData, const QByteArray &etag
         notebook->setIsReadOnly(false);
 
         // Start by deleting all previous data.
-        KCalCore::Incidence::List localIncidences;
-        if (!mStorage->allIncidences(&localIncidences, mNotebookUid)) {
+        if (!mStorage->loadNotebookIncidences(mNotebookUid)) {
             failed(Buteo::SyncResults::DATABASE_FAILURE,
-                   QStringLiteral("Cannot list existing incidences."));
+                   QStringLiteral("Cannot load existing incidences."));
             return;
         }
-        LOG_DEBUG("Deleting" << localIncidences.count() << "previous incidences.");
-        for (KCalCore::Incidence::List::ConstIterator it = localIncidences.constBegin();
-             it != localIncidences.constEnd(); ++it) {
-            KCalCore::Incidence::Ptr incidence =
-                mCalendar->incidence((*it)->uid(), (*it)->recurrenceId());
-            LOG_DEBUG("-" << (*it)->uid() << (*it)->recurrenceId().dateTime());
-            if (!incidence || !mCalendar->deleteIncidence(incidence)) {
-                failed(Buteo::SyncResults::DATABASE_FAILURE,
-                       QStringLiteral("Cannot delete incidence."));
-                return;
-            }
-        }
+        deleted = mCalendar->incidences().count();
+        LOG_DEBUG("Deleting" << deleted << "previous incidences.");
+        mCalendar->deleteAllIncidences();
         // Deletion happens after insertion in mkcal, so ensure
         // that incidences with a UID in icsData are deleted before.
-        if (!localIncidences.isEmpty() && !mStorage->save()) {
+        if (deleted && !mStorage->save()) {
             failed(Buteo::SyncResults::DATABASE_FAILURE,
                    QStringLiteral("Cannot delete previous data."));
             return;
@@ -255,17 +241,15 @@ void WebCalClient::processData(const QByteArray &icsData, const QByteArray &etag
                    QStringLiteral("Cannot parse incoming ICS data."));
             return;
         }
-        LOG_DEBUG("Adding" << mCalendar->incidences().count() << "new incidences.");
+        added = mCalendar->incidences().count();
+        LOG_DEBUG("Adding" << added << "new incidences.");
         LOG_DEBUG("From calendar" << mCalendar->nonKDECustomProperty("X-WR-CALNAME")
                   << mCalendar->nonKDECustomProperty("X-WR-CALDESC"));
-        if (mCalendar->incidences().count() && !mStorage->save()) {
+        if (added && !mStorage->save()) {
             failed(Buteo::SyncResults::DATABASE_FAILURE,
                    QStringLiteral("Cannot store data."));
             return;
         }
-
-        added = mCalendar->incidences().count();
-        deleted = localIncidences.count();
 
         // Record the etag so we only update in future if necessary.
         notebook->setAccount(etag);
