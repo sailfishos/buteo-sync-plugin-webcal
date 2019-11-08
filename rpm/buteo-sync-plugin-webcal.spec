@@ -1,6 +1,6 @@
 Name:       buteo-sync-plugin-webcal
 Summary:    Syncs online calendar resource in ICS format
-Version:    0.0.7
+Version:    0.0.8
 Release:    1
 Group:      System/Libraries
 License:    LGPLv2.1
@@ -9,7 +9,7 @@ Source0:    %{name}-%{version}.tar.bz2
 BuildRequires:  pkgconfig(Qt5Core)
 BuildRequires:  pkgconfig(Qt5Network)
 BuildRequires:  pkgconfig(Qt5DBus)
-BuildRequires:  pkgconfig(libmkcal-qt5)
+BuildRequires:  pkgconfig(libmkcal-qt5) >= 0.5.9
 BuildRequires:  pkgconfig(libkcalcoren-qt5)
 BuildRequires:  pkgconfig(buteosyncfw5)
 Requires: buteo-syncfw-qt5-msyncd

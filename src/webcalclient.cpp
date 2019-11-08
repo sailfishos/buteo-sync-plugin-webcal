@@ -57,6 +57,7 @@ WebCalClient::~WebCalClient()
     delete(mReply);
 }
 
+static const QByteArray ETAG_PROPERTY("etag");
 bool WebCalClient::init()
 {
     emit syncProgressDetail(iProfile.name(), Sync::SYNC_PROGRESS_INITIALISING);
@@ -74,12 +75,12 @@ bool WebCalClient::init()
         return false;
     }
 
-    // Look for an already existing notebook in storage for this account.
+    // Look for an already existing notebook in storage for this sync profile.
     for (mKCal::Notebook::Ptr notebook : mStorage->notebooks()) {
         if (notebook->pluginName() == getPluginName() &&
             notebook->syncProfile() == getProfileName()) {
             mNotebookUid = notebook->uid();
-            mNotebookEtag = notebook->account().toUtf8(); // Abuse the account to store the etag.
+            mNotebookEtag = notebook->customProperty(ETAG_PROPERTY).toUtf8();
             break;
         }
     }
@@ -252,7 +253,7 @@ void WebCalClient::processData(const QByteArray &icsData, const QByteArray &etag
         }
 
         // Record the etag so we only update in future if necessary.
-        notebook->setAccount(etag);
+        notebook->setCustomProperty(ETAG_PROPERTY, etag);
         // Store calendar name, if auto-detect has been requested.
         if (mClient->key("label").isEmpty()) {
             notebook->setName(mCalendar->nonKDECustomProperty("X-WR-CALNAME"));

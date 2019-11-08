@@ -159,7 +159,7 @@ void tst_WebCalClient::validate()
     QVERIFY(!notebook->isMaster());
     QCOMPARE(notebook->name(), QStringLiteral("Calendrier Scolaire - Zone A"));
     QCOMPARE(notebook->description(), QStringLiteral("education.gouv.fr"));
-    QCOMPARE(notebook->account(), QStringLiteral("\"etag\""));
+    QCOMPARE(notebook->customProperty("etag"), QStringLiteral("\"etag\""));
 
     mKCal::ExtendedCalendar::Ptr cal(new mKCal::ExtendedCalendar(KDateTime::Spec::UTC()));
     mKCal::ExtendedStorage::Ptr store = mKCal::ExtendedCalendar::defaultStorage(cal);
@@ -238,7 +238,7 @@ void tst_WebCalClient::validateSecond()
     QVERIFY(!notebook->isMaster());
     QCOMPARE(notebook->name(), QStringLiteral("Calendrier Scolaire - Zone B"));
     QCOMPARE(notebook->description(), QStringLiteral("education.gouv.fr"));
-    QCOMPARE(notebook->account(), QStringLiteral("\"etag2\""));
+    QCOMPARE(notebook->customProperty("etag"), QStringLiteral("\"etag2\""));
 
     mKCal::ExtendedCalendar::Ptr cal(new mKCal::ExtendedCalendar(KDateTime::Spec::UTC()));
     mKCal::ExtendedStorage::Ptr store = mKCal::ExtendedCalendar::defaultStorage(cal);
@@ -290,7 +290,7 @@ void tst_WebCalClient::downloadWithMetaDataUpdateOnly()
     QVERIFY(!notebook->isMaster());
     QCOMPARE(notebook->name(), QStringLiteral("Web calendar"));
     QCOMPARE(notebook->description(), QStringLiteral("education.gouv.fr"));
-    QCOMPARE(notebook->account(), QStringLiteral("\"etag2\""));
+    QCOMPARE(notebook->customProperty("etag"), QStringLiteral("\"etag2\""));
 }
 
 static const QByteArray icsDataThird(
@@ -321,7 +321,7 @@ void tst_WebCalClient::validateThird()
     QVERIFY(!notebook->isMaster());
     QCOMPARE(notebook->name(), QStringLiteral("Calendrier Scolaire - Zone C"));
     QCOMPARE(notebook->description(), QStringLiteral("education.gouv.fr"));
-    QVERIFY(notebook->account().isEmpty());
+    QVERIFY(notebook->customProperty("etag").isEmpty());
 
     mKCal::ExtendedCalendar::Ptr cal(new mKCal::ExtendedCalendar(KDateTime::Spec::UTC()));
     mKCal::ExtendedStorage::Ptr store = mKCal::ExtendedCalendar::defaultStorage(cal);
