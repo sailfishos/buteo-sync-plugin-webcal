@@ -26,6 +26,18 @@ A Buteo plugin which syncs a ICS resource online
 %config %{_sysconfdir}/buteo/profiles/sync/webcal-sync.xml
 %config %{_sysconfdir}/buteo/profiles/client/webcal.xml
 
+%package tests
+Summary:  Unit tests for web calendar Buteo sync plugin
+Group:      System/Libraries
+Requires:   %{name} = %{version}
+
+%description tests
+This package contains unit tests for web calendar Buteo sync plugin
+
+%files tests
+%defattr(-,root,root,-)
+/opt/tests/buteo/plugins/webcal
+
 %prep
 %setup -q -n %{name}-%{version}
 
