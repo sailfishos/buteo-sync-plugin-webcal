@@ -337,9 +337,6 @@ void tst_WebCalClient::validateThird()
 
 void tst_WebCalClient::downloadWithoutEtag()
 {
-    // Need to add a delay here to avoid to have the same deletedDate for event 608.
-    QThread::sleep(2);
-
     QVERIFY(mClient->init());
     mClient->processData(icsDataThird, "");
 

@@ -54,7 +54,7 @@ WebCalClient::WebCalClient(const QString& aPluginName,
 
 WebCalClient::~WebCalClient()
 {
-    delete(mReply);
+    delete mReply;
 }
 
 static const QByteArray ETAG_PROPERTY("etag");
@@ -226,7 +226,7 @@ void WebCalClient::processData(const QByteArray &icsData, const QByteArray &etag
         mCalendar->deleteAllIncidences();
         // Deletion happens after insertion in mkcal, so ensure
         // that incidences with a UID in icsData are deleted before.
-        if (deleted && !mStorage->save()) {
+        if (deleted && !mStorage->save(mKCal::ExtendedStorage::PurgeDeleted)) {
             failed(Buteo::SyncResults::DATABASE_FAILURE,
                    QStringLiteral("Cannot delete previous data."));
             return;
