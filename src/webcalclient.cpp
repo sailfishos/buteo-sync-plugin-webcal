@@ -184,6 +184,8 @@ bool WebCalClient::cleanUp()
     }
     LOG_DEBUG("Deleting notebook" << mNotebookUid);
     mKCal::Notebook::Ptr notebook = mStorage->notebook(mNotebookUid);
+    if (notebook)
+        notebook->setIsReadOnly(false);
     return !notebook || mStorage->deleteNotebook(notebook);
 }
 
