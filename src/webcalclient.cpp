@@ -269,6 +269,9 @@ void WebCalClient::processData(const QByteArray &icsData, const QByteArray &etag
     if (!mClient->key("label").isEmpty()) {
         notebook->setName(mClient->key("label"));
     }
+    if (!iProfile.key("accountid").isEmpty()) {
+        notebook->setAccount(iProfile.key("accountid"));
+    }
     notebook->setIsReadOnly(true);
     notebook->setIsMaster(false);
     notebook->setSyncDate(KDateTime::currentUtcDateTime());
