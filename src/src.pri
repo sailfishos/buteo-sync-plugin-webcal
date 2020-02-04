@@ -17,5 +17,5 @@ OTHER_FILES += \
         $$PWD/xmls/webcal.xml \
         $$PWD/xmls/webcal-sync.xml
 
-MOC_DIR=$$PWD/.moc/
-OBJECTS_DIR=$$PWD/.obj/
+MOC_DIR=$$OUT_PWD/.moc/
+OBJECTS_DIR=$$OUT_PWD/.obj/
