@@ -89,6 +89,7 @@ bool WebCalClient::init()
         mKCal::Notebook::Ptr notebook(new mKCal::Notebook(mClient->key("label"), QString()));
         notebook->setPluginName(getPluginName());
         notebook->setSyncProfile(getProfileName());
+        notebook->setIsReadOnly(true);
         if (!mStorage->addNotebook(notebook)) {
             LOG_WARNING("Cannot create a new notebook" << notebook->uid());
             return false;
