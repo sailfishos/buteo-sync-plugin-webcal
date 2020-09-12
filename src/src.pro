@@ -12,12 +12,12 @@ DEFINES += BUTEOWEBDAVPLUGIN_LIBRARY
 !contains (DEFINES, BUTEO_OUT_OF_PROCESS_SUPPORT) {
     TEMPLATE = lib
     CONFIG += plugin
-    target.path = /usr/lib/buteo-plugins-qt5
+    target.path = $$[QT_INSTALL_LIBS]/buteo-plugins-qt5
 }
 
 contains (DEFINES, BUTEO_OUT_OF_PROCESS_SUPPORT) {
     TEMPLATE = app
-    target.path = /usr/lib/buteo-plugins-qt5/oopp
+    target.path = $$[QT_INSTALL_LIBS]/buteo-plugins-qt5/oopp
     DEFINES += CLIENT_PLUGIN
     DEFINES += "CLASSNAME=WebCalClient"
     DEFINES += CLASSNAME_H=\\\"webcalclient.h\\\"
