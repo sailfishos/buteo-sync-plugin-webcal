@@ -28,7 +28,7 @@
 #include <PluginCbInterface.h>
 #include <LogMacros.h>
 
-#include <icalformat.h>
+#include <KCalendarCore/ICalFormat>
 
 extern "C" WebCalClient* createPlugin(const QString& aPluginName,
                                       const Buteo::SyncProfile& aProfile,
@@ -68,7 +68,7 @@ bool WebCalClient::init()
         return false;
     }
 
-    mCalendar = mKCal::ExtendedCalendar::Ptr(new mKCal::ExtendedCalendar(KDateTime::Spec::UTC()));
+    mCalendar = mKCal::ExtendedCalendar::Ptr(new mKCal::ExtendedCalendar(QTimeZone::utc()));
     mStorage = mKCal::ExtendedCalendar::defaultStorage(mCalendar);
     if (!mStorage || !mStorage->open()) {
         LOG_WARNING("Cannot open default storage.");
@@ -238,7 +238,7 @@ void WebCalClient::processData(const QByteArray &icsData, const QByteArray &etag
         // Recreate all incidences from incoming ICS data.
         mCalendar->addNotebook(mNotebookUid, true);
         mCalendar->setDefaultNotebook(mNotebookUid);
-        KCalCore::ICalFormat iCalFormat;
+        KCalendarCore::ICalFormat iCalFormat;
         LOG_DEBUG(icsData);
         if (!icsData.isEmpty() && !iCalFormat.fromRawString(mCalendar, icsData)) {
             failed(Buteo::SyncResults::DATABASE_FAILURE,
@@ -275,7 +275,7 @@ void WebCalClient::processData(const QByteArray &icsData, const QByteArray &etag
     }
     notebook->setIsReadOnly(true);
     notebook->setIsMaster(false);
-    notebook->setSyncDate(KDateTime::currentUtcDateTime());
+    notebook->setSyncDate(QDateTime::currentDateTimeUtc());
     if (!mStorage->updateNotebook(notebook)) {
         failed(Buteo::SyncResults::DATABASE_FAILURE,
                QStringLiteral("Cannot update notebook."));

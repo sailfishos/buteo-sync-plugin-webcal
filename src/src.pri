@@ -3,7 +3,7 @@ QT += network dbus
 
 CONFIG += link_pkgconfig c++11
 
-PKGCONFIG += buteosyncfw5 libkcalcoren-qt5 libmkcal-qt5
+PKGCONFIG += buteosyncfw5 KF5CalendarCore libmkcal-qt5
 
 INCLUDEPATH += $$PWD
 
