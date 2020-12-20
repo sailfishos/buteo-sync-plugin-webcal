@@ -101,6 +101,7 @@ void tst_WebCalClient::initCreateEmpty()
     QVERIFY(notebook);
     QVERIFY(notebook->name().isEmpty());
     QVERIFY(notebook->description().isEmpty());
+    QVERIFY(notebook->isReadOnly());
 }
 
 void tst_WebCalClient::initCreateWithLabel()
@@ -119,6 +120,7 @@ void tst_WebCalClient::initCreateWithLabel()
     QVERIFY(notebook);
     QCOMPARE(notebook->name(), client->key(QStringLiteral("label")));
     QVERIFY(notebook->description().isEmpty());
+    QVERIFY(notebook->isReadOnly());
 
     QVERIFY(mClient->mStorage->deleteNotebook(notebook));
     mNotebookUid.clear();
@@ -161,13 +163,13 @@ void tst_WebCalClient::validate()
     QCOMPARE(notebook->description(), QStringLiteral("education.gouv.fr"));
     QCOMPARE(notebook->customProperty("etag"), QStringLiteral("\"etag\""));
 
-    mKCal::ExtendedCalendar::Ptr cal(new mKCal::ExtendedCalendar(KDateTime::Spec::UTC()));
+    mKCal::ExtendedCalendar::Ptr cal(new mKCal::ExtendedCalendar(QTimeZone::utc()));
     mKCal::ExtendedStorage::Ptr store = mKCal::ExtendedCalendar::defaultStorage(cal);
     QVERIFY(store && store->open());
     QVERIFY(store->loadNotebookIncidences(mNotebookUid));
-    KCalCore::Incidence::List incidences = cal->incidences();
+    KCalendarCore::Incidence::List incidences = cal->incidences();
     QCOMPARE(incidences.count(), 1);
-    KCalCore::Incidence::Ptr ev = incidences.first();
+    KCalendarCore::Incidence::Ptr ev = incidences.first();
     QVERIFY(ev);
     QCOMPARE(ev->uid(), QStringLiteral("608@education.gouv.fr"));
     QCOMPARE(ev->summary(), QStringLiteral("Prérentrée des enseignants - Zone A"));
@@ -240,15 +242,15 @@ void tst_WebCalClient::validateSecond()
     QCOMPARE(notebook->description(), QStringLiteral("education.gouv.fr"));
     QCOMPARE(notebook->customProperty("etag"), QStringLiteral("\"etag2\""));
 
-    mKCal::ExtendedCalendar::Ptr cal(new mKCal::ExtendedCalendar(KDateTime::Spec::UTC()));
+    mKCal::ExtendedCalendar::Ptr cal(new mKCal::ExtendedCalendar(QTimeZone::utc()));
     mKCal::ExtendedStorage::Ptr store = mKCal::ExtendedCalendar::defaultStorage(cal);
     QVERIFY(store && store->open());
     QVERIFY(store->loadNotebookIncidences(mNotebookUid));
-    KCalCore::Incidence::List incidences = cal->incidences();
+    KCalendarCore::Incidence::List incidences = cal->incidences();
     QCOMPARE(incidences.count(), 2);
-    KCalCore::Incidence::Ptr ev1 = cal->incidence(QStringLiteral("608@education.gouv.fr"));
+    KCalendarCore::Incidence::Ptr ev1 = cal->incidence(QStringLiteral("608@education.gouv.fr"));
     QVERIFY(ev1);
-    KCalCore::Incidence::Ptr ev2 = cal->incidence(QStringLiteral("609@education.gouv.fr"));
+    KCalendarCore::Incidence::Ptr ev2 = cal->incidence(QStringLiteral("609@education.gouv.fr"));
     QVERIFY(ev2);
     QCOMPARE(ev1->summary(), QStringLiteral("Prérentrée des enseignants - Zone B"));
     QCOMPARE(ev2->summary(), QStringLiteral("Rentrée scolaire des élèves - Zone B"));
@@ -323,13 +325,13 @@ void tst_WebCalClient::validateThird()
     QCOMPARE(notebook->description(), QStringLiteral("education.gouv.fr"));
     QVERIFY(notebook->customProperty("etag").isEmpty());
 
-    mKCal::ExtendedCalendar::Ptr cal(new mKCal::ExtendedCalendar(KDateTime::Spec::UTC()));
+    mKCal::ExtendedCalendar::Ptr cal(new mKCal::ExtendedCalendar(QTimeZone::utc()));
     mKCal::ExtendedStorage::Ptr store = mKCal::ExtendedCalendar::defaultStorage(cal);
     QVERIFY(store && store->open());
     QVERIFY(store->loadNotebookIncidences(mNotebookUid));
-    KCalCore::Incidence::List incidences = cal->incidences();
+    KCalendarCore::Incidence::List incidences = cal->incidences();
     QCOMPARE(incidences.count(), 1);
-    KCalCore::Incidence::Ptr ev = incidences.first();
+    KCalendarCore::Incidence::Ptr ev = incidences.first();
     QVERIFY(ev);
     QCOMPARE(ev->uid(), QStringLiteral("609@education.gouv.fr"));
     QCOMPARE(ev->summary(), QStringLiteral("Rentrée scolaire des élèves - Zone C"));
