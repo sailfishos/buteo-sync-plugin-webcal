@@ -2,6 +2,7 @@
  * This file is part of buteo-sync-plugin-webcal package
  *
  * Copyright (C) 2019 Damien Caliste <dcaliste@free.fr>.
+ * Copyright (C) 2021 Jolla Ltd.
  *
  * This library is free software; you can redistribute it and/or
  * modify it under the terms of the GNU Lesser General Public License
@@ -25,6 +26,7 @@
 #include <ClientPlugin.h>
 #include <SyncResults.h>
 #include <SyncCommonDefs.h>
+#include <SyncPluginLoader.h>
 
 #include <extendedstorage.h>
 
@@ -78,21 +80,24 @@ private:
     friend class tst_WebCalClient;
 };
 
-/*! \brief Creates WebCal client plugin
- *
- * @param aPluginName Name of this client plugin
- * @param aProfile Profile to use
- * @param aCbInterface Pointer to the callback interface
- * @return Client plugin on success, otherwise NULL
- */
-extern "C" WebCalClient* createPlugin(const QString &aPluginName,
-                                      const Buteo::SyncProfile &aProfile,
-                                      Buteo::PluginCbInterface *aCbInterface);
+class WebCalClientLoader : public Buteo::SyncPluginLoader
+{
+    Q_OBJECT
+    Q_PLUGIN_METADATA(IID "org.sailfishos.plugins.sync.WebCalClientLoader")
+    Q_INTERFACES(Buteo::SyncPluginLoader)
 
-/*! \brief Destroys WebCal client plugin
- *
- * @param aClient WebCal client plugin instance to destroy
- */
-extern "C" void destroyPlugin(WebCalClient *aClient);
+public:
+    /*! \brief Creates WebCal client plugin
+     *
+     * @param aPluginName Name of this client plugin
+     * @param aProfile Profile to use
+     * @param aCbInterface Pointer to the callback interface
+     * @return Client plugin on success, otherwise NULL
+     */
+    Buteo::ClientPlugin* createClientPlugin(const QString& pluginName,
+                                            const Buteo::SyncProfile& profile,
+                                            Buteo::PluginCbInterface* cbInterface) override;
+};
+
 
 #endif // WEBCALCLIENT_H

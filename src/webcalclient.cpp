@@ -2,6 +2,7 @@
  * This file is part of buteo-sync-plugin-webcal package
  *
  * Copyright (C) 2019 Damien Caliste <dcaliste@free.fr>.
+ * Copyright (C) 2021 Jolla Ltd.
  *
  * This library is free software; you can redistribute it and/or
  * modify it under the terms of the GNU Lesser General Public License
@@ -30,17 +31,15 @@
 
 #include <KCalendarCore/ICalFormat>
 
-extern "C" WebCalClient* createPlugin(const QString& aPluginName,
-                                      const Buteo::SyncProfile& aProfile,
-                                      Buteo::PluginCbInterface *aCbInterface)
+
+Buteo::ClientPlugin* WebCalClientLoader::createClientPlugin(
+        const QString& pluginName,
+        const Buteo::SyncProfile& profile,
+        Buteo::PluginCbInterface* cbInterface)
 {
-    return new WebCalClient(aPluginName, aProfile, aCbInterface);
+    return new WebCalClient(pluginName, profile, cbInterface);
 }
 
-extern "C" void destroyPlugin(WebCalClient *aClient)
-{
-    delete aClient;
-}
 
 WebCalClient::WebCalClient(const QString& aPluginName,
                            const Buteo::SyncProfile& aProfile,
