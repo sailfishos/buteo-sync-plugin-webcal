@@ -181,7 +181,7 @@ void tst_WebCalClient::firstDownload()
     mClient->processData(icsDataFirst, "\"etag\"");
 
     const Buteo::SyncResults res(mClient->getSyncResults());
-    QCOMPARE(res.majorCode(), int(Buteo::SyncResults::SYNC_RESULT_SUCCESS));
+    QCOMPARE(res.majorCode(), Buteo::SyncResults::SYNC_RESULT_SUCCESS);
     QCOMPARE(res.targetResults().count(), 1);
     Buteo::ItemCounts counts(res.targetResults().first().localItems());
     QCOMPARE(counts.added, unsigned(1));
@@ -196,7 +196,7 @@ void tst_WebCalClient::downloadWithSameEtag()
     mClient->processData(icsDataFirst, "\"etag\"");
 
     const Buteo::SyncResults res(mClient->getSyncResults());
-    QCOMPARE(res.majorCode(), int(Buteo::SyncResults::SYNC_RESULT_SUCCESS));
+    QCOMPARE(res.majorCode(), Buteo::SyncResults::SYNC_RESULT_SUCCESS);
     QCOMPARE(res.targetResults().count(), 0);
 
     validate();
@@ -262,7 +262,7 @@ void tst_WebCalClient::downloadWithDifferentEtag()
     mClient->processData(icsDataSecond, "\"etag2\"");
 
     const Buteo::SyncResults res(mClient->getSyncResults());
-    QCOMPARE(res.majorCode(), int(Buteo::SyncResults::SYNC_RESULT_SUCCESS));
+    QCOMPARE(res.majorCode(), Buteo::SyncResults::SYNC_RESULT_SUCCESS);
     QCOMPARE(res.targetResults().count(), 1);
     Buteo::ItemCounts counts(res.targetResults().first().localItems());
     QCOMPARE(counts.added, unsigned(2));
@@ -282,7 +282,7 @@ void tst_WebCalClient::downloadWithMetaDataUpdateOnly()
     mClient->processData(icsDataSecond, "\"etag2\"");
 
     const Buteo::SyncResults res(mClient->getSyncResults());
-    QCOMPARE(res.majorCode(), int(Buteo::SyncResults::SYNC_RESULT_SUCCESS));
+    QCOMPARE(res.majorCode(), Buteo::SyncResults::SYNC_RESULT_SUCCESS);
     QCOMPARE(res.targetResults().count(), 0);
 
     QVERIFY(mClient->mStorage);
@@ -343,7 +343,7 @@ void tst_WebCalClient::downloadWithoutEtag()
     mClient->processData(icsDataThird, "");
 
     const Buteo::SyncResults res(mClient->getSyncResults());
-    QCOMPARE(res.majorCode(), int(Buteo::SyncResults::SYNC_RESULT_SUCCESS));
+    QCOMPARE(res.majorCode(), Buteo::SyncResults::SYNC_RESULT_SUCCESS);
     QCOMPARE(res.targetResults().count(), 1);
     Buteo::ItemCounts counts(res.targetResults().first().localItems());
     QCOMPARE(counts.added, unsigned(1));
