@@ -27,10 +27,10 @@
 #include <QDateTime>
 
 #include <PluginCbInterface.h>
-#include <LogMacros.h>
 
 #include <KCalendarCore/ICalFormat>
 
+Q_LOGGING_CATEGORY(lcWebCal, "buteo.plugin.webcal", QtWarningMsg)
 
 Buteo::ClientPlugin* WebCalClientLoader::createClientPlugin(
         const QString& pluginName,
@@ -63,14 +63,14 @@ bool WebCalClient::init()
 
     mClient = iProfile.clientProfile();
     if (!mClient) {
-        LOG_WARNING("Cannot find client profile.");
+        qCWarning(lcWebCal) << "Cannot find client profile.";
         return false;
     }
 
     mCalendar = mKCal::ExtendedCalendar::Ptr(new mKCal::ExtendedCalendar(QTimeZone::utc()));
     mStorage = mKCal::ExtendedCalendar::defaultStorage(mCalendar);
     if (!mStorage || !mStorage->open()) {
-        LOG_WARNING("Cannot open default storage.");
+        qCWarning(lcWebCal) << "Cannot open default storage.";
         return false;
     }
 
@@ -90,19 +90,19 @@ bool WebCalClient::init()
         notebook->setSyncProfile(getProfileName());
         notebook->setIsReadOnly(true);
         if (!mStorage->addNotebook(notebook)) {
-            LOG_WARNING("Cannot create a new notebook" << notebook->uid());
+            qCWarning(lcWebCal) << "Cannot create a new notebook" << notebook->uid();
             return false;
         }
         mNotebookUid = notebook->uid();
     }
-    LOG_DEBUG("Using notebook" << mNotebookUid);
+    qCDebug(lcWebCal) << "Using notebook" << mNotebookUid;
 
     return true;
 }
 
 bool WebCalClient::uninit()
 {
-    LOG_DEBUG("Closing storage.");
+    qCDebug(lcWebCal) << "Closing storage.";
     if (mStorage) {
         mStorage->close();
     }
@@ -119,7 +119,7 @@ bool WebCalClient::startSync()
     if (!mNotebookEtag.isEmpty()) {
         request.setRawHeader("If-None-Match", mNotebookEtag);
     }
-    LOG_DEBUG("Requesting" << request.url() << mNotebookEtag);
+    qCDebug(lcWebCal) << "Requesting" << request.url() << mNotebookEtag;
 
     QNetworkAccessManager *accessManager = new QNetworkAccessManager(this);
     mReply = accessManager->get(request);
@@ -128,7 +128,7 @@ bool WebCalClient::startSync()
             mReply->deleteLater();
             if (mReply->error() != QNetworkReply::NoError
                 && mReply->error() != QNetworkReply::OperationCanceledError) {
-                LOG_WARNING(mReply->readAll());
+                qCWarning(lcWebCal) << mReply->readAll();
                 failed(Buteo::SyncResults::CONNECTION_ERROR,
                        QStringLiteral("Network issue: %1.").arg(mReply->error()));
             } else if (mReply->error() == QNetworkReply::NoError) {
@@ -182,7 +182,7 @@ bool WebCalClient::cleanUp()
     if (mNotebookUid.isEmpty()) {
         init();
     }
-    LOG_DEBUG("Deleting notebook" << mNotebookUid);
+    qCDebug(lcWebCal) << "Deleting notebook" << mNotebookUid;
     mKCal::Notebook::Ptr notebook = mStorage->notebook(mNotebookUid);
     if (notebook)
         notebook->setIsReadOnly(false);
@@ -212,7 +212,7 @@ void WebCalClient::processData(const QByteArray &icsData, const QByteArray &etag
     }
 
     unsigned int added = 0, deleted = 0;
-    LOG_DEBUG("Got etag" << etag << "was" << mNotebookEtag);
+    qCDebug(lcWebCal) << "Got etag" << etag << "was" << mNotebookEtag;
     if (etag.isEmpty() || etag != mNotebookEtag) {
         // Make Notebook writable for the time of the modifications.
         notebook->setIsReadOnly(false);
@@ -224,7 +224,7 @@ void WebCalClient::processData(const QByteArray &icsData, const QByteArray &etag
             return;
         }
         deleted = mCalendar->incidences().count();
-        LOG_DEBUG("Deleting" << deleted << "previous incidences.");
+        qCDebug(lcWebCal) << "Deleting" << deleted << "previous incidences.";
         mCalendar->deleteAllIncidences();
         // Deletion happens after insertion in mkcal, so ensure
         // that incidences with a UID in icsData are deleted before.
@@ -238,16 +238,16 @@ void WebCalClient::processData(const QByteArray &icsData, const QByteArray &etag
         mCalendar->addNotebook(mNotebookUid, true);
         mCalendar->setDefaultNotebook(mNotebookUid);
         KCalendarCore::ICalFormat iCalFormat;
-        LOG_DEBUG(icsData);
+        qCDebug(lcWebCal) << icsData;
         if (!icsData.isEmpty() && !iCalFormat.fromRawString(mCalendar, icsData)) {
             failed(Buteo::SyncResults::DATABASE_FAILURE,
                    QStringLiteral("Cannot parse incoming ICS data."));
             return;
         }
         added = mCalendar->incidences().count();
-        LOG_DEBUG("Adding" << added << "new incidences.");
-        LOG_DEBUG("From calendar" << mCalendar->nonKDECustomProperty("X-WR-CALNAME")
-                  << mCalendar->nonKDECustomProperty("X-WR-CALDESC"));
+        qCDebug(lcWebCal) << "Adding" << added << "new incidences.";
+        qCDebug(lcWebCal) << "From calendar" << mCalendar->nonKDECustomProperty("X-WR-CALNAME")
+                  << mCalendar->nonKDECustomProperty("X-WR-CALDESC");
         if (added && !mStorage->save()) {
             failed(Buteo::SyncResults::DATABASE_FAILURE,
                    QStringLiteral("Cannot store data."));
@@ -283,3 +283,4 @@ void WebCalClient::processData(const QByteArray &icsData, const QByteArray &etag
 
     succeed(notebook->name(), added, deleted);
 }
+
