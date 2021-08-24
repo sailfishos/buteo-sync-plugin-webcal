@@ -151,14 +151,14 @@ void WebCalClient::abortSync(Sync::SyncStatus aStatus)
     }
 }
 
-void WebCalClient::succeed(unsigned int added, unsigned int deleted)
+void WebCalClient::succeed(const QString &label, unsigned int added, unsigned int deleted)
 {
     mResults = Buteo::SyncResults(QDateTime::currentDateTime().toUTC(),
                                   Buteo::SyncResults::SYNC_RESULT_SUCCESS,
                                   Buteo::SyncResults::NO_ERROR);
     if (added || deleted) {
         mResults.addTargetResults
-            (Buteo::TargetResults(mNotebookUid,
+            (Buteo::TargetResults(label.isEmpty() ? mNotebookUid : label,
                                   Buteo::ItemCounts(added, deleted, 0),
                                   Buteo::ItemCounts()));
     }
@@ -212,7 +212,7 @@ void WebCalClient::processData(const QByteArray &icsData, const QByteArray &etag
     }
 
     unsigned int added = 0, deleted = 0;
-    LOG_DEBUG("Got etag" << etag);
+    LOG_DEBUG("Got etag" << etag << "was" << mNotebookEtag);
     if (etag.isEmpty() || etag != mNotebookEtag) {
         // Make Notebook writable for the time of the modifications.
         notebook->setIsReadOnly(false);
@@ -281,5 +281,5 @@ void WebCalClient::processData(const QByteArray &icsData, const QByteArray &etag
         return;
     }
 
-    succeed(added, deleted);
+    succeed(notebook->name(), added, deleted);
 }
