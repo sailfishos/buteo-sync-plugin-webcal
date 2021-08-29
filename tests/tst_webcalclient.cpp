@@ -68,7 +68,6 @@ tst_WebCalClient::~tst_WebCalClient()
 void tst_WebCalClient::initTestCase()
 {
     qputenv("SQLITESTORAGEDB", "./db");
-    qputenv("MSYNCD_LOGGING_LEVEL", "8");
 
     QFile::remove("./db");
 }

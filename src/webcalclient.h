@@ -31,6 +31,7 @@
 #include <extendedstorage.h>
 
 #include <QObject>
+#include <QLoggingCategory>
 
 #if defined(BUTEOWEBCALPLUGIN_LIBRARY)
 #  define SHARED_EXPORT Q_DECL_EXPORT
@@ -98,6 +99,5 @@ public:
                                             const Buteo::SyncProfile& profile,
                                             Buteo::PluginCbInterface* cbInterface) override;
 };
-
 
 #endif // WEBCALCLIENT_H
