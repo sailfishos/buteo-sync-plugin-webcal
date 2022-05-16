@@ -75,25 +75,26 @@ bool WebCalClient::init()
     }
 
     // Look for an already existing notebook in storage for this sync profile.
-    for (mKCal::Notebook::Ptr notebook : mStorage->notebooks()) {
-        if (notebook->pluginName() == getPluginName() &&
-            notebook->syncProfile() == getProfileName()) {
-            mNotebookUid = notebook->uid();
-            mNotebookEtag = notebook->customProperty(ETAG_PROPERTY).toUtf8();
+    const QList<mKCal::Notebook> notebooks = mStorage->notebooks();
+    for (const mKCal::Notebook &notebook : notebooks) {
+        if (notebook.pluginName() == getPluginName() &&
+            notebook.syncProfile() == getProfileName()) {
+            mNotebookUid = notebook.uid();
+            mNotebookEtag = notebook.customProperty(ETAG_PROPERTY).toUtf8();
             break;
         }
     }
     if (mNotebookUid.isEmpty()) {
         // or create a new one
-        mKCal::Notebook::Ptr notebook(new mKCal::Notebook(mClient->key("label"), QString()));
-        notebook->setPluginName(getPluginName());
-        notebook->setSyncProfile(getProfileName());
-        notebook->setIsReadOnly(true);
+        mKCal::Notebook notebook(mClient->key("label"), QString());
+        notebook.setPluginName(getPluginName());
+        notebook.setSyncProfile(getProfileName());
+        notebook.setIsReadOnly(true);
         if (!mStorage->addNotebook(notebook)) {
-            qCWarning(lcWebCal) << "Cannot create a new notebook" << notebook->uid();
+            qCWarning(lcWebCal) << "Cannot create a new notebook" << notebook.uid();
             return false;
         }
-        mNotebookUid = notebook->uid();
+        mNotebookUid = notebook.uid();
     }
     qCDebug(lcWebCal) << "Using notebook" << mNotebookUid;
 
@@ -183,10 +184,7 @@ bool WebCalClient::cleanUp()
         init();
     }
     qCDebug(lcWebCal) << "Deleting notebook" << mNotebookUid;
-    mKCal::Notebook::Ptr notebook = mStorage->notebook(mNotebookUid);
-    if (notebook)
-        notebook->setIsReadOnly(false);
-    return !notebook || mStorage->deleteNotebook(notebook);
+    return mStorage->deleteNotebook(mNotebookUid);
 }
 
 void WebCalClient::connectivityStateChanged(Sync::ConnectivityType aType, bool aState)
@@ -204,8 +202,8 @@ void WebCalClient::dataReceived()
 
 void WebCalClient::processData(const QByteArray &icsData, const QByteArray &etag)
 {
-    mKCal::Notebook::Ptr notebook = mStorage->notebook(mNotebookUid);
-    if (!notebook) {
+    mKCal::Notebook notebook = mStorage->notebook(mNotebookUid);
+    if (!notebook.isValid()) {
         failed(Buteo::SyncResults::DATABASE_FAILURE,
                QStringLiteral("Cannot find notebook."));
         return;
@@ -214,9 +212,6 @@ void WebCalClient::processData(const QByteArray &icsData, const QByteArray &etag
     unsigned int added = 0, deleted = 0;
     qCDebug(lcWebCal) << "Got etag" << etag << "was" << mNotebookEtag;
     if (etag.isEmpty() || etag != mNotebookEtag) {
-        // Make Notebook writable for the time of the modifications.
-        notebook->setIsReadOnly(false);
-
         // Start by deleting all previous data.
         if (!mStorage->loadNotebookIncidences(mNotebookUid)) {
             failed(Buteo::SyncResults::DATABASE_FAILURE,
@@ -255,32 +250,32 @@ void WebCalClient::processData(const QByteArray &icsData, const QByteArray &etag
         }
 
         // Record the etag so we only update in future if necessary.
-        notebook->setCustomProperty(ETAG_PROPERTY, etag);
+        notebook.setCustomProperty(ETAG_PROPERTY, etag);
         // Store calendar name, if auto-detect has been requested.
         if (mClient->key("label").isEmpty()) {
-            notebook->setName(mCalendar->nonKDECustomProperty("X-WR-CALNAME"));
+            notebook.setName(mCalendar->nonKDECustomProperty("X-WR-CALNAME"));
         }
         if (!mCalendar->nonKDECustomProperty("X-WR-CALDESC").isEmpty()
-            && mCalendar->nonKDECustomProperty("X-WR-CALDESC") != notebook->name()) {
-            notebook->setDescription(mCalendar->nonKDECustomProperty("X-WR-CALDESC"));
+            && mCalendar->nonKDECustomProperty("X-WR-CALDESC") != notebook.name()) {
+            notebook.setDescription(mCalendar->nonKDECustomProperty("X-WR-CALDESC"));
         }
     }
     // Ensure that settings for the notebook are consistent.
     if (!mClient->key("label").isEmpty()) {
-        notebook->setName(mClient->key("label"));
+        notebook.setName(mClient->key("label"));
     }
     if (!iProfile.key("accountid").isEmpty()) {
-        notebook->setAccount(iProfile.key("accountid"));
+        notebook.setAccount(iProfile.key("accountid"));
     }
-    notebook->setIsReadOnly(true);
-    notebook->setIsMaster(false);
-    notebook->setSyncDate(QDateTime::currentDateTimeUtc());
+    notebook.setIsReadOnly(true);
+    notebook.setIsMaster(false);
+    notebook.setSyncDate(QDateTime::currentDateTimeUtc());
     if (!mStorage->updateNotebook(notebook)) {
         failed(Buteo::SyncResults::DATABASE_FAILURE,
                QStringLiteral("Cannot update notebook."));
         return;
     }
 
-    succeed(notebook->name(), added, deleted);
+    succeed(notebook.name(), added, deleted);
 }
 
