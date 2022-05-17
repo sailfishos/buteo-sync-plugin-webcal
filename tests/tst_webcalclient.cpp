@@ -96,11 +96,11 @@ void tst_WebCalClient::initCreateEmpty()
     QVERIFY(mClient->mNotebookEtag.isEmpty());
 
     QVERIFY(mClient->mStorage);
-    mKCal::Notebook::Ptr notebook = mClient->mStorage->notebook(mNotebookUid);
-    QVERIFY(notebook);
-    QVERIFY(notebook->name().isEmpty());
-    QVERIFY(notebook->description().isEmpty());
-    QVERIFY(notebook->isReadOnly());
+    const mKCal::Notebook notebook = mClient->mStorage->notebook(mNotebookUid);
+    QVERIFY(notebook.isValid());
+    QVERIFY(notebook.name().isEmpty());
+    QVERIFY(notebook.description().isEmpty());
+    QVERIFY(notebook.isReadOnly());
 }
 
 void tst_WebCalClient::initCreateWithLabel()
@@ -115,13 +115,13 @@ void tst_WebCalClient::initCreateWithLabel()
     QVERIFY(mClient->mNotebookEtag.isEmpty());
 
     QVERIFY(mClient->mStorage);
-    mKCal::Notebook::Ptr notebook = mClient->mStorage->notebook(mNotebookUid);
-    QVERIFY(notebook);
-    QCOMPARE(notebook->name(), client->key(QStringLiteral("label")));
-    QVERIFY(notebook->description().isEmpty());
-    QVERIFY(notebook->isReadOnly());
+    const mKCal::Notebook notebook = mClient->mStorage->notebook(mNotebookUid);
+    QVERIFY(notebook.isValid());
+    QCOMPARE(notebook.name(), client->key(QStringLiteral("label")));
+    QVERIFY(notebook.description().isEmpty());
+    QVERIFY(notebook.isReadOnly());
 
-    QVERIFY(mClient->mStorage->deleteNotebook(notebook));
+    QVERIFY(mClient->mStorage->deleteNotebook(notebook.uid()));
     mNotebookUid.clear();
 }
 
@@ -154,13 +154,13 @@ static const QByteArray icsDataFirst(
 void tst_WebCalClient::validate()
 {
     QVERIFY(mClient->mStorage);
-    mKCal::Notebook::Ptr notebook = mClient->mStorage->notebook(mNotebookUid);
-    QVERIFY(notebook);
-    QVERIFY(notebook->isReadOnly());
-    QVERIFY(!notebook->isMaster());
-    QCOMPARE(notebook->name(), QStringLiteral("Calendrier Scolaire - Zone A"));
-    QCOMPARE(notebook->description(), QStringLiteral("education.gouv.fr"));
-    QCOMPARE(notebook->customProperty("etag"), QStringLiteral("\"etag\""));
+    const mKCal::Notebook notebook = mClient->mStorage->notebook(mNotebookUid);
+    QVERIFY(notebook.isValid());
+    QVERIFY(notebook.isReadOnly());
+    QVERIFY(!notebook.isMaster());
+    QCOMPARE(notebook.name(), QStringLiteral("Calendrier Scolaire - Zone A"));
+    QCOMPARE(notebook.description(), QStringLiteral("education.gouv.fr"));
+    QCOMPARE(notebook.customProperty("etag"), QStringLiteral("\"etag\""));
 
     mKCal::ExtendedCalendar::Ptr cal(new mKCal::ExtendedCalendar(QTimeZone::utc()));
     mKCal::ExtendedStorage::Ptr store = mKCal::ExtendedCalendar::defaultStorage(cal);
@@ -233,13 +233,13 @@ static const QByteArray icsDataSecond(
 void tst_WebCalClient::validateSecond()
 {
     QVERIFY(mClient->mStorage);
-    mKCal::Notebook::Ptr notebook = mClient->mStorage->notebook(mNotebookUid);
-    QVERIFY(notebook);
-    QVERIFY(notebook->isReadOnly());
-    QVERIFY(!notebook->isMaster());
-    QCOMPARE(notebook->name(), QStringLiteral("Calendrier Scolaire - Zone B"));
-    QCOMPARE(notebook->description(), QStringLiteral("education.gouv.fr"));
-    QCOMPARE(notebook->customProperty("etag"), QStringLiteral("\"etag2\""));
+    const mKCal::Notebook notebook = mClient->mStorage->notebook(mNotebookUid);
+    QVERIFY(notebook.isValid());
+    QVERIFY(notebook.isReadOnly());
+    QVERIFY(!notebook.isMaster());
+    QCOMPARE(notebook.name(), QStringLiteral("Calendrier Scolaire - Zone B"));
+    QCOMPARE(notebook.description(), QStringLiteral("education.gouv.fr"));
+    QCOMPARE(notebook.customProperty("etag"), QStringLiteral("\"etag2\""));
 
     mKCal::ExtendedCalendar::Ptr cal(new mKCal::ExtendedCalendar(QTimeZone::utc()));
     mKCal::ExtendedStorage::Ptr store = mKCal::ExtendedCalendar::defaultStorage(cal);
@@ -285,13 +285,13 @@ void tst_WebCalClient::downloadWithMetaDataUpdateOnly()
     QCOMPARE(res.targetResults().count(), 0);
 
     QVERIFY(mClient->mStorage);
-    mKCal::Notebook::Ptr notebook = mClient->mStorage->notebook(mNotebookUid);
-    QVERIFY(notebook);
-    QVERIFY(notebook->isReadOnly());
-    QVERIFY(!notebook->isMaster());
-    QCOMPARE(notebook->name(), QStringLiteral("Web calendar"));
-    QCOMPARE(notebook->description(), QStringLiteral("education.gouv.fr"));
-    QCOMPARE(notebook->customProperty("etag"), QStringLiteral("\"etag2\""));
+    const mKCal::Notebook notebook = mClient->mStorage->notebook(mNotebookUid);
+    QVERIFY(notebook.isValid());
+    QVERIFY(notebook.isReadOnly());
+    QVERIFY(!notebook.isMaster());
+    QCOMPARE(notebook.name(), QStringLiteral("Web calendar"));
+    QCOMPARE(notebook.description(), QStringLiteral("education.gouv.fr"));
+    QCOMPARE(notebook.customProperty("etag"), QStringLiteral("\"etag2\""));
 }
 
 static const QByteArray icsDataThird(
@@ -316,13 +316,13 @@ static const QByteArray icsDataThird(
 void tst_WebCalClient::validateThird()
 {
     QVERIFY(mClient->mStorage);
-    mKCal::Notebook::Ptr notebook = mClient->mStorage->notebook(mNotebookUid);
-    QVERIFY(notebook);
-    QVERIFY(notebook->isReadOnly());
-    QVERIFY(!notebook->isMaster());
-    QCOMPARE(notebook->name(), QStringLiteral("Calendrier Scolaire - Zone C"));
-    QCOMPARE(notebook->description(), QStringLiteral("education.gouv.fr"));
-    QVERIFY(notebook->customProperty("etag").isEmpty());
+    const mKCal::Notebook notebook = mClient->mStorage->notebook(mNotebookUid);
+    QVERIFY(notebook.isValid());
+    QVERIFY(notebook.isReadOnly());
+    QVERIFY(!notebook.isMaster());
+    QCOMPARE(notebook.name(), QStringLiteral("Calendrier Scolaire - Zone C"));
+    QCOMPARE(notebook.description(), QStringLiteral("education.gouv.fr"));
+    QVERIFY(notebook.customProperty("etag").isEmpty());
 
     mKCal::ExtendedCalendar::Ptr cal(new mKCal::ExtendedCalendar(QTimeZone::utc()));
     mKCal::ExtendedStorage::Ptr store = mKCal::ExtendedCalendar::defaultStorage(cal);
