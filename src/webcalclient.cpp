@@ -184,8 +184,6 @@ bool WebCalClient::cleanUp()
     }
     qCDebug(lcWebCal) << "Deleting notebook" << mNotebookUid;
     mKCal::Notebook::Ptr notebook = mStorage->notebook(mNotebookUid);
-    if (notebook)
-        notebook->setIsReadOnly(false);
     return !notebook || mStorage->deleteNotebook(notebook);
 }
 
@@ -214,9 +212,6 @@ void WebCalClient::processData(const QByteArray &icsData, const QByteArray &etag
     unsigned int added = 0, deleted = 0;
     qCDebug(lcWebCal) << "Got etag" << etag << "was" << mNotebookEtag;
     if (etag.isEmpty() || etag != mNotebookEtag) {
-        // Make Notebook writable for the time of the modifications.
-        notebook->setIsReadOnly(false);
-
         // Start by deleting all previous data.
         if (!mStorage->loadNotebookIncidences(mNotebookUid)) {
             failed(Buteo::SyncResults::DATABASE_FAILURE,

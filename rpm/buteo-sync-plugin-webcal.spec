@@ -9,7 +9,7 @@ BuildRequires:  pkgconfig(Qt5Core)
 BuildRequires:  pkgconfig(Qt5Network)
 BuildRequires:  pkgconfig(Qt5DBus)
 BuildRequires:  pkgconfig(Qt5Test)
-BuildRequires:  pkgconfig(libmkcal-qt5) >= 0.5.9
+BuildRequires:  pkgconfig(libmkcal-qt5) >= 0.6.10
 BuildRequires:  pkgconfig(KF5CalendarCore)
 BuildRequires:  pkgconfig(buteosyncfw5) >= 0.10.0
 Requires: buteo-syncfw-qt5-msyncd
