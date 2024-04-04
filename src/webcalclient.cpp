@@ -218,9 +218,12 @@ void WebCalClient::processData(const QByteArray &icsData, const QByteArray &etag
                    QStringLiteral("Cannot load existing incidences."));
             return;
         }
-        deleted = mCalendar->incidences().count();
+        const KCalendarCore::Incidence::List oldIncidences = mCalendar->incidences();
+        deleted = oldIncidences.count();
         qCDebug(lcWebCal) << "Deleting" << deleted << "previous incidences.";
-        mCalendar->deleteAllIncidences();
+        for (const KCalendarCore::Incidence::Ptr &incidence : oldIncidences) {
+            mCalendar->deleteIncidence(incidence);
+        }
         // Deletion happens after insertion in mkcal, so ensure
         // that incidences with a UID in icsData are deleted before.
         if (deleted && !mStorage->save(mKCal::ExtendedStorage::PurgeDeleted)) {
