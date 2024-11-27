@@ -1,0 +1,4 @@
+.obj
+.moc
+*.so
+Makefile
